@@ -1,4 +1,5 @@
 / {
+	
 	clocks {
 		ad9361_clkin: clock@0 {
 			compatible = "fixed-clock";
@@ -8,6 +9,7 @@
 			#clock-cells = <0>;
 		};
 	};
+	
 };
 
 &fmc_spi {

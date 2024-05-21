@@ -7,7 +7,7 @@ SRC_DIR = .
 BUILD_DIR = $(SRC_DIR)/build
 
 # Default target device tree, but can be overridden
-TARGET ?= zynq-zed-adv7511-ad9361-fmcomms2-3
+TARGET ?= zynq-zed
 
 # Default all target
 all: $(BUILD_DIR)/$(TARGET).dtb

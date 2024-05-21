@@ -609,48 +609,29 @@
 # 3 "zynq-zed.dtsi" 2
 
 
-
-
-
 / {
- model = "Avnet ZedBoard board";
- compatible = "avnet,zynq-zed", "xlnx,zynq-zed", "xlnx,zynq-7000";
-
- aliases {
-  ethernet0 = &gem0;
-  serial0 = &uart1;
-  spi0 = &qspi;
-  mmc0 = &sdhci0;
- };
-
+ model = "Xilinx Zynq ZED";
  memory {
   device_type = "memory";
-  reg = <0x0 0x20000000>;
+  reg = <0x000000000 0x20000000>;
  };
 
  chosen {
-  bootargs = "";
-  stdout-path = "serial0:115200n8";
 
-
-
+  bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 rw earlyprintk rootfstype=ext4 rootwait";
+  stdout-path = "/amba@0/uart@E0001000";
  };
-};
-
-&clkc {
- ps-clk-frequency = <33333333>;
 };
 
 &gem0 {
- status = "okay";
+ phy-handle = <&phy0>;
  phy-mode = "rgmii-id";
- phy-handle = <&ethernet_phy>;
 
- ethernet_phy: ethernet-phy@0 {
-  reg = <0>;
+ phy0: phy@0 {
   device_type = "ethernet-phy";
+  reg = <0x0>;
+  marvell,reg-init=<3 16 0xff00 0x1e 3 17 0xfff0 0x0a>;
  };
-
 };
 
 &usb0 {
@@ -658,56 +639,36 @@
 };
 
 &qspi {
- u-boot,dm-pre-reloc;
  status = "okay";
  is-dual = <0>;
  num-cs = <1>;
- flash@0 {
-  compatible = "spansion,s25fl256s1", "jedec,spi-nor";
-  reg = <0>;
-  spi-tx-bus-width = <1>;
-  spi-rx-bus-width = <4>;
-  spi-max-frequency = <50000000>;
-  m25p,fast-read;
+ primary_flash: ps7-qspi@0 {
   #address-cells = <1>;
   #size-cells = <1>;
+  compatible = "n25q128a11";
+  reg = <0x0>;
+  spi-max-frequency = <50000000>;
   partition@0 {
-   label = "qspi-fsbl-uboot";
-   reg = <0x0 0x100000>;
+   label = "boot";
+   reg = <0x00000000 0x00500000>;
   };
-  partition@100000 {
-   label = "qspi-linux";
-   reg = <0x100000 0x500000>;
+  partition@500000 {
+   label = "bootenv";
+   reg = <0x00500000 0x00020000>;
   };
-  partition@600000 {
-   label = "qspi-device-tree";
-   reg = <0x600000 0x20000>;
+  partition@520000 {
+   label = "config";
+   reg = <0x00520000 0x00020000>;
   };
-  partition@620000 {
-   label = "qspi-rootfs";
-   reg = <0x620000 0x5E0000>;
+  partition@540000 {
+   label = "image";
+   reg = <0x00540000 0x00a80000>;
   };
-  partition@c00000 {
-   label = "qspi-bitstream";
-   reg = <0xC00000 0x400000>;
+  partition@fc0000 {
+   label = "spare";
+   reg = <0x00fc0000 0x00000000>;
   };
  };
-# 117 "zynq-zed.dtsi"
-};
-
-&sdhci0 {
- u-boot,dm-pre-reloc;
- status = "okay";
-};
-
-&uart1 {
- u-boot,dm-pre-reloc;
- status = "okay";
-};
-
-&usb0 {
- status = "okay";
- dr_mode = "host";
 };
 # 15 "zynq-zed-adv7511-ad9361-fmcomms2-3.dts" 2
 # 1 "zynq-zed-adv7511.dtsi" 1

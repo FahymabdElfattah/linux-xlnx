@@ -142,6 +142,7 @@
   gpio0: gpio@e000a000 {
    compatible = "xlnx,zynq-gpio-1.0";
    #gpio-cells = <2>;
+   #address-cells = <0>;
    clocks = <&clkc 42>;
    gpio-controller;
    interrupt-controller;
@@ -178,6 +179,7 @@
   intc: interrupt-controller@f8f01000 {
    compatible = "arm,cortex-a9-gic";
    #interrupt-cells = <3>;
+   #address-cells = <0>;
    interrupt-controller;
    reg = <0xF8F01000 0x1000>,
          <0xF8F00100 0x100>;
@@ -250,7 +252,7 @@
     clock-names = "ad9361_ext_refclk";
     clock-output-names = "rx_sampl_clk", "tx_sampl_clk";
     #clock-cells = <1>;
-# 258 "zynq-7000.dtsi"
+# 260 "zynq-7000.dtsi"
     adi,digital-interface-tune-skip-mode = <0>;
 
     adi,pp-tx-swap-enable;
@@ -274,7 +276,7 @@
 
 
     adi,frequency-division-duplex-mode-enable;
-# 298 "zynq-7000.dtsi"
+# 300 "zynq-7000.dtsi"
     adi,rx-rf-port-input-select = <0>;
 
 
@@ -296,7 +298,7 @@
     adi,rx-path-clock-frequencies = <983040000 245760000 122880000 61440000 30720000 30720000>;
 
     adi,tx-path-clock-frequencies = <983040000 122880000 122880000 61440000 30720000 30720000>;
-# 331 "zynq-7000.dtsi"
+# 333 "zynq-7000.dtsi"
     adi,gc-rx1-mode = <2>;
     adi,gc-rx2-mode = <2>;
     adi,gc-adc-ovr-sample-size = <4>;
@@ -315,7 +317,7 @@
 
     adi,mgc-inc-gain-step = <2>;
     adi,mgc-dec-gain-step = <2>;
-# 357 "zynq-7000.dtsi"
+# 359 "zynq-7000.dtsi"
     adi,mgc-split-table-ctrl-inp-gain-mode = <0>;
 
 
@@ -374,7 +376,7 @@
                 adi,fagc-rst-gla-stronger-sig-thresh-exceeded-enable;
                 adi,fagc-state-wait-time-ns = <260>;
                 adi,fagc-use-last-lock-level-for-set-gain-enable;
-# 426 "zynq-7000.dtsi"
+# 428 "zynq-7000.dtsi"
     adi,rssi-restart-mode = <3>;
 
     adi,rssi-delay = <1>;
@@ -422,6 +424,42 @@
    clock-names = "ref_clk", "pclk";
    #address-cells = <1>;
    #size-cells = <0>;
+
+   lo_pll0_tx_adf4351: adf4351-udc-tx-pmod@0 {
+    compatible = "adi,adf4351";
+    reg = <0>;
+
+    spi-max-frequency = <10000000>;
+
+    clocks = <&adf4351_clkin>;
+    clock-names = "clkin";
+
+    adi,channel-spacing = <1000000>;
+    adi,power-up-frequency = <370000000>;
+    adi,phase-detector-polarity-positive-enable;
+    adi,charge-pump-current = <2500>;
+    adi,output-power = <3>;
+    adi,mute-till-lock-enable;
+    adi,muxout-select = <6>;
+   };
+
+   lo_pll0_rx_adf4351: adf4351-udc-rx-pmod@1 {
+    compatible = "adi,adf4351";
+    reg = <1>;
+
+    spi-max-frequency = <10000000>;
+
+    clocks = <&adf4351_clkin>;
+    clock-names = "clkin";
+
+    adi,channel-spacing = <1000000>;
+    adi,power-up-frequency = <340000000>;
+    adi,phase-detector-polarity-positive-enable;
+    adi,charge-pump-current = <2500>;
+    adi,output-power = <3>;
+    adi,mute-till-lock-enable;
+    adi,muxout-select = <6>;
+   };
   };
 
   qspi: spi@e000d000 {
@@ -754,9 +792,21 @@
    clock-output-names = "ad9361_ext_refclk";
    #clock-cells = <0>;
   };
+  adf4351_clkin: clock@1 {
+   compatible = "fixed-clock";
+
+   clock-frequency = <25000000>;
+   clock-output-names = "refclk";
+   #clock-cells = <0>;
+  };
  };
+
+
 };
 # 8 "zynq-zed.dts" 2
+# 1 "irq.h" 1
+# 9 "zynq-zed.dts" 2
+
 
 / {
  model = "Avnet ZedBoard board";
@@ -778,6 +828,355 @@
   bootargs = "";
   stdout-path = "serial0:115200n8";
  };
+
+ fpga-axi{
+  compatible = "simple-bus";
+  #address-cells = <0x01>;
+  #size-cells = <0x01>;
+  ranges;
+
+  i2c@41600000 {
+   compatible = "xlnx,axi-iic-1.01.b\0xlnx,xps-iic-2.00.a";
+   reg = <0x41600000 0x10000>;
+   interrupt-parent = <&intc>;
+   interrupts = <0 58 4>;
+   clocks = <&clkc 15>;
+   clock-names = "pclk";
+
+   #size-cells = <0>;
+   #address-cells = <1>;
+   adv7511: adv7511@39 {
+    compatible = "adi,adv7511";
+    reg = <0x39>, <0x3f>;
+    reg-names = "primary", "edid";
+
+    adi,input-depth = <8>;
+    adi,input-colorspace = "yuv422";
+    adi,input-clock = "1x";
+    adi,input-style = <1>;
+    adi,input-justification = "right";
+    adi,clock-delay = <0>;
+
+    #sound-dai-cells = <1>;
+    ports {
+     #address-cells = <1>;
+     #size-cells = <0>;
+
+     port@0 {
+      reg = <0>;
+      adv7511_in: endpoint {
+       remote-endpoint = <&axi_hdmi_out>;
+      };
+     };
+
+     port@1 {
+      reg = <1>;
+     };
+    };
+   };
+
+   adau1761: adau1761@3b {
+    compatible = "adi,adau1761";
+    reg = <0x3b>;
+
+    clocks = <&audio_clock>;
+    clock-names = "mclk";
+
+    #sound-dai-cells = <0>;
+   };
+  };
+
+
+  hdmi_dma: dma@43000000{
+   compatible = "adi,axi-dmac-1.00.a";
+   reg = <0x43000000 0x1000>;
+   #dma-cells = <1>;
+   interrupts = <0 59 4>;
+   interrupt-parent = <&intc>;
+   clocks = <&clkc 16>;
+
+   adi,channels{
+    #size-cells = <0>;
+    #address-cells = <1>;
+
+    dma-channel@0 {
+     reg = <0>;
+     adi,source-bus-width = <64>;
+     adi,source-bus-type = <0>;
+     adi,destination-bus-width = <64>;
+     adi,destination-bus-type = <1>;
+    };
+   };
+  };
+
+
+  hdmi_clock: axi-clkgen@79000000 {
+   compatible = "adi,axi-clkgen-2.00.a";
+   reg = <0x79000000 0x10000>;
+   #clock-cells = <0>;
+   clocks = <&clkc 15>, <&clkc 16>;
+   clock-names = "s_axi_aclk", "clkin1";
+  };
+
+
+  axi_hdmi@70e00000{
+   compatible = "adi,axi-hdmi-tx-1.00.a";
+   reg = <0x70e00000 0x10000>;
+   dmas = <&hdmi_dma 0>;
+   dma-names = "video";
+   clocks = <&hdmi_clock>;
+   port {
+    axi_hdmi_out: endpoint {
+     remote-endpoint = <&adv7511_in>;
+    };
+   };
+  };
+
+
+  axi_spdif_tx_0: axi-spdif-tx@75c00000{
+   compatible = "adi,axi-spdif-tx-1.00.a";
+   reg = <0x75c00000 0x1000>;
+   dmas = <&dmac_s 0>;
+   dma-names = "tx";
+   clocks = <&clkc 15>, <&audio_clock>;
+   clock-names = "axi", "ref";
+
+   #sound-dai-cells = <0>;
+  };
+
+
+  axi_i2s_0: axi-i2s@77600000 {
+   compatible = "adi,axi-i2s-1.00.a";
+   reg = <0x77600000 0x1000>;
+   dmas = <&dmac_s 1 &dmac_s 2>;
+   dma-names = "tx", "rx";
+   clocks = <&clkc 15>, <&audio_clock>;
+   clock-names = "axi", "ref";
+
+   #sound-dai-cells = <0>;
+  };
+
+
+  axi_sysid_0: axi-sysid-0@45000000 {
+   compatible = "adi,axi-sysid-1.00.a";
+   reg = <0x45000000 0x10000>;
+  };
+
+
+  fmc_i2c: i2c@41620000 {
+   compatible = "xlnx,axi-iic-1.01.b\0xlnx,xps-iic-2.00.a";
+   reg = <0x41620000 0x10000>;
+   interrupt-parent = <&intc>;
+   interrupts = <0 55 4>;
+   clocks = <&clkc 15>;
+   clock-names = "pclk";
+   #size-cells = <0>;
+   #address-cells = <1>;
+
+   eeprom@50 {
+    compatible = "at24,24c02";
+    reg = <0x50>;
+   };
+
+   ad7291@2f {
+    compatible = "adi,ad7291";
+    reg = <0x2f>;
+   };
+  };
+
+
+  rx_dma: dma@7c400000 {
+   compatible = "adi,axi-dmac-1.00.a";
+   reg = <0x7c400000 0x1000>;
+   #dma-cells = <1>;
+   interrupts = <0 57 4>;
+   interrupt-parent = <&intc>;
+   clocks = <&clkc 16>;
+
+
+   adi,channels {
+    #size-cells = <0>;
+    #address-cells = <1>;
+
+    dma-channel@0 {
+     reg = <0>;
+     adi,source-bus-width = <64>;
+     adi,source-bus-type = <2>;
+     adi,destination-bus-width = <64>;
+     adi,destination-bus-type = <0>;
+    };
+   };
+  };
+
+
+  tx_dma: dma@7c420000 {
+   compatible = "adi,axi-dmac-1.00.a";
+   reg = <0x7c420000 0x1000>;
+   #dma-cells = <1>;
+   interrupts = <0 56 4>;
+   interrupt-parent = <&intc>;
+   clocks = <&clkc 16>;
+
+
+   adi,channels {
+    #size-cells = <0>;
+    #address-cells = <1>;
+
+    dma-channel@0 {
+     reg = <0>;
+     adi,source-bus-width = <64>;
+     adi,source-bus-type = <0>;
+     adi,destination-bus-width = <64>;
+     adi,destination-bus-type = <2>;
+    };
+   };
+  };
+
+
+  cf_ad9361_adc_core_0: cf-ad9361-lpc@79020000 {
+   compatible = "adi,axi-ad9361-6.00.a";
+   reg = <0x79020000 0x6000>;
+   dmas = <&rx_dma 0>;
+   dma-names = "rx";
+   spibus-connected = <&adc0_ad9361>;
+  };
+
+
+  cf_ad9361_dac_core_0: cf-ad9361-dds-core-lpc@79024000 {
+   compatible = "adi,axi-ad9361-dds-6.00.a";
+   reg = <0x79024000 0x1000>;
+   clocks = <&adc0_ad9361 13>;
+   clock-names = "sampl_clk";
+   dmas = <&tx_dma 0>;
+   dma-names = "tx";
+  };
+ };
+
+ adc0_ad9361 {
+  en_agc-gpios = <&gpio0 98 0>;
+  sync-gpios = <&gpio0 99 0>;
+  reset-gpios = <&gpio0 100 0>;
+  enable-gpios = <&gpio0 101 0>;
+  txnrx-gpios = <&gpio0 102 0>;
+ };
+
+ spi0 {
+  status = "okay";
+ };
+
+ spi1 {
+  status = "okay";
+ };
+
+ lo_pll0_rx_adf4351 {
+  gpios = <&gpio0 103 0>;
+ };
+
+ lo_pll0_tx_adf4351 {
+  gpios = <&gpio0 104 0>;
+ };
+
+ audio_clock: audio_clock {
+  compatible = "fixed-clock";
+  #clock-cells = <0>;
+  clock-frequency = <12288000>;
+ };
+
+
+ adv7511_hdmi_snd {
+  compatible = "simple-audio-card";
+  simple-audio-card,name = "HDMI monitor";
+  simple-audio-card,widgets =
+   "Speaker", "Speaker";
+  simple-audio-card,routing =
+   "Speaker", "TX";
+
+  simple-audio-card,dai-link@0 {
+   format = "spdif";
+   cpu {
+    sound-dai = <&axi_spdif_tx_0>;
+   };
+   codec {
+    sound-dai = <&adv7511 1>;
+   };
+  };
+ };
+
+
+ zed_sound {
+  compatible = "simple-audio-card";
+  simple-audio-card,name = "ZED ADAU1761";
+  simple-audio-card,widgets =
+   "Microphone", "Mic In",
+   "Headphone", "Headphone Out",
+   "Line", "Line In",
+   "Line", "Line Out";
+  simple-audio-card,routing =
+   "Line Out", "LOUT",
+   "Line Out", "ROUT",
+   "Headphone Out", "LHP",
+   "Headphone Out", "RHP",
+   "Mic In", "MICBIAS",
+   "LINN", "Mic In",
+   "RINN", "Mic In",
+   "LAUX", "Line In",
+   "RAUX", "Line In";
+
+  simple-audio-card,dai-link@0 {
+   format = "i2s";
+   cpu {
+    sound-dai = <&axi_i2s_0>;
+   };
+   codec {
+    sound-dai = <&adau1761>;
+   };
+  };
+ };
+
+
+ leds {
+  compatible = "gpio-leds";
+  ld0 {
+   label = "ld0:red";
+   gpios = <&gpio0 73 0>;
+  };
+
+  ld1 {
+   label = "ld1:red";
+   gpios = <&gpio0 74 0>;
+  };
+
+  ld2 {
+   label = "ld2:red";
+   gpios = <&gpio0 75 0>;
+  };
+
+  ld3 {
+   label = "ld3:red";
+   gpios = <&gpio0 76 0>;
+  };
+
+  ld4 {
+   label = "ld4:red";
+   gpios = <&gpio0 77 0>;
+  };
+
+  ld5 {
+   label = "ld5:red";
+   gpios = <&gpio0 78 0>;
+  };
+
+  ld6 {
+   label = "ld6:red";
+   gpios = <&gpio0 79 0>;
+  };
+
+  ld7 {
+   label = "ld7:red";
+   gpios = <&gpio0 80 0>;
+  };
+ };
+
 };
 
 &clkc {
